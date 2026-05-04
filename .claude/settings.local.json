@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(Get-Content \"C:\\\\Users\\\\giofl\\\\Documents\\\\vault-tcg\\\\node_modules\\\\@clerk\\\\nextjs\\\\package.json\")",
+      "Bash(Select-String '\"version\"')",
+      "Bash(node *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Skill(claude-api)",
+      "Bash(npm install *)"
+    ]
+  }
+}

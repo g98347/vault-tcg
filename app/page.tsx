@@ -1,15 +1,19 @@
-const inventory: {
+"use client";
+
+import { useEffect, useState } from "react";
+import { AddCardModal } from "./components/AddCardModal";
+
+type Card = {
   id: number;
+  user_id: string;
   name: string;
-  game: string;
   condition: string;
   qty: number;
   cost: number;
   market: number;
   source: string;
-}[] = [];
-
-const ACTIVE_LISTINGS = 0;
+  created_at: string;
+};
 
 const usd = (n: number) =>
   new Intl.NumberFormat("en-US", {
@@ -18,23 +22,24 @@ const usd = (n: number) =>
     maximumFractionDigits: 0,
   }).format(n);
 
-const pct = (n: number) =>
-  `${n >= 0 ? "+" : ""}${n.toFixed(1)}%`;
+const pct = (n: number) => `${n >= 0 ? "+" : ""}${n.toFixed(1)}%`;
 
-const gameColor: Record<string, string> = {
-  "Pokémon": "bg-yellow-400",
-  "MTG": "bg-orange-500",
+const conditionColor: Record<string, string> = {
+  "PSA 10": "text-emerald-400",
+  "PSA 9": "text-emerald-400",
+  NM: "text-sky-400",
+  LP: "text-yellow-400",
+  MP: "text-orange-400",
+  HP: "text-red-400",
 };
 
-function sourceUrl(source: string, name: string, game: string, condition: string): string | null {
+function sourceUrl(source: string, name: string, condition: string): string | null {
   const q = encodeURIComponent(name);
   switch (source) {
     case "eBay":
       return `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(`${name} ${condition}`)}&LH_Sold=1&LH_Complete=1`;
-    case "TCGPlayer": {
-      const line = game === "Pokémon" ? "pokemon" : "magic";
-      return `https://www.tcgplayer.com/search/${line}/product?q=${q}&view=grid`;
-    }
+    case "TCGPlayer":
+      return `https://www.tcgplayer.com/search/pokemon/product?q=${q}&view=grid`;
     case "PWCC":
       return `https://www.pwccmarketplace.com/search?query=${q}`;
     default:
@@ -42,20 +47,31 @@ function sourceUrl(source: string, name: string, game: string, condition: string
   }
 }
 
-const conditionColor: Record<string, string> = {
-  "PSA 10": "text-emerald-400",
-  "PSA 9": "text-emerald-400",
-  "NM": "text-sky-400",
-  "LP": "text-yellow-400",
-  "MP": "text-orange-400",
-  "HP": "text-red-400",
-};
-
 export default function Home() {
+  const [inventory, setInventory] = useState<Card[]>([]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  async function fetchCards() {
+    try {
+      const res = await fetch("/api/cards");
+      if (res.ok) {
+        const data = await res.json();
+        setInventory(data);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchCards();
+  }, []);
+
   const totalValue = inventory.reduce((s, c) => s + c.market * c.qty, 0);
   const costBasis = inventory.reduce((s, c) => s + c.cost * c.qty, 0);
   const unrealizedPnl = totalValue - costBasis;
-  const unrealizedPct = (unrealizedPnl / costBasis) * 100;
+  const unrealizedPct = costBasis > 0 ? (unrealizedPnl / costBasis) * 100 : 0;
 
   const metrics = [
     {
@@ -79,7 +95,7 @@ export default function Home() {
     },
     {
       label: "Active Listings",
-      value: ACTIVE_LISTINGS.toString(),
+      value: "0",
       sub: "on marketplace",
       accent: false,
     },
@@ -99,7 +115,10 @@ export default function Home() {
               Track your collection value and performance
             </p>
           </div>
-          <button className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-zinc-950">
+          <button
+            onClick={() => setModalOpen(true)}
+            className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-zinc-950"
+          >
             + Add Card
           </button>
         </div>
@@ -150,29 +169,53 @@ export default function Home() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-800 bg-zinc-800/40">
-                  {["Card", "Game", "Condition", "Qty", "Cost", "Market Value", "P&L", "Source"].map(
-                    (col) => (
-                      <th
-                        key={col}
-                        className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-400"
-                      >
-                        {col}
-                      </th>
-                    )
-                  )}
+                  {[
+                    "Card",
+                    "Condition",
+                    "Qty",
+                    "Cost",
+                    "Market Value",
+                    "P&L",
+                    "Source",
+                  ].map((col) => (
+                    <th
+                      key={col}
+                      className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-400"
+                    >
+                      {col}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800">
-                {inventory.length === 0 && (
+                {loading && (
                   <tr>
-                    <td colSpan={8} className="px-5 py-12 text-center text-sm text-zinc-500">
-                      No cards in inventory. Click <span className="text-purple-400">+ Add Card</span> to get started.
+                    <td
+                      colSpan={7}
+                      className="px-5 py-12 text-center text-sm text-zinc-500"
+                    >
+                      Loading...
+                    </td>
+                  </tr>
+                )}
+                {!loading && inventory.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="px-5 py-12 text-center text-sm text-zinc-500"
+                    >
+                      No cards in inventory. Click{" "}
+                      <span className="text-purple-400">+ Add Card</span> to
+                      get started.
                     </td>
                   </tr>
                 )}
                 {inventory.map((card) => {
                   const pnlAbs = (card.market - card.cost) * card.qty;
-                  const pnlPercent = ((card.market - card.cost) / card.cost) * 100;
+                  const pnlPercent =
+                    card.cost > 0
+                      ? ((card.market - card.cost) / card.cost) * 100
+                      : 0;
                   const positive = pnlAbs >= 0;
 
                   return (
@@ -182,14 +225,6 @@ export default function Home() {
                     >
                       <td className="px-5 py-4 font-medium text-white">
                         {card.name}
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className="inline-flex items-center gap-1.5 text-zinc-300">
-                          <span
-                            className={`h-2 w-2 rounded-full ${gameColor[card.game] ?? "bg-zinc-500"}`}
-                          />
-                          {card.game}
-                        </span>
                       </td>
                       <td className="px-5 py-4">
                         <span
@@ -222,7 +257,11 @@ export default function Home() {
                       </td>
                       <td className="px-5 py-4">
                         {(() => {
-                          const url = sourceUrl(card.source, card.name, card.game, card.condition);
+                          const url = sourceUrl(
+                            card.source,
+                            card.name,
+                            card.condition
+                          );
                           return url ? (
                             <a
                               href={url}
@@ -245,7 +284,10 @@ export default function Home() {
               </tbody>
               <tfoot>
                 <tr className="border-t border-zinc-700 bg-zinc-800/30">
-                  <td colSpan={4} className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-400">
+                  <td
+                    colSpan={3}
+                    className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-400"
+                  >
                     Totals
                   </td>
                   <td className="px-5 py-3 tabular-nums text-sm font-semibold text-white">
@@ -275,6 +317,13 @@ export default function Home() {
         </div>
 
       </div>
+
+      {modalOpen && (
+        <AddCardModal
+          onClose={() => setModalOpen(false)}
+          onAdded={fetchCards}
+        />
+      )}
     </div>
   );
 }
