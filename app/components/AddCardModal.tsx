@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { CardSearchInput } from "./CardSearchInput";
 
 type CardFormData = {
   name: string;
@@ -36,6 +37,7 @@ export function AddCardModal({ onClose, onAdded }: Props) {
   const [fetchingMarket, setFetchingMarket] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [nameValid, setNameValid] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const fetchIdRef = useRef(0);
 
@@ -91,6 +93,7 @@ export function AddCardModal({ onClose, onAdded }: Props) {
 
       const { name } = await res.json();
       setForm((prev) => ({ ...prev, name }));
+      setNameValid(true);
       enterForm(name);
     } catch (err) {
       setScanError(err instanceof Error ? err.message : "Scan failed");
@@ -274,14 +277,11 @@ export function AddCardModal({ onClose, onAdded }: Props) {
               <label className="mb-1 block text-xs font-medium text-zinc-400">
                 Card Name
               </label>
-              <input
-                type="text"
+              <CardSearchInput
                 value={form.name}
-                onChange={(e) => set("name", e.target.value)}
-                onBlur={(e) => fetchMarketPrice(e.target.value, form.condition, form.source)}
-                required
-                placeholder="e.g. Charizard (Base Set)"
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-white placeholder-zinc-500 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                onChange={(v) => set("name", v)}
+                onSelect={(v) => fetchMarketPrice(v, form.condition, form.source)}
+                onValidChange={setNameValid}
               />
             </div>
 
@@ -389,7 +389,7 @@ export function AddCardModal({ onClose, onAdded }: Props) {
               </button>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !nameValid}
                 className="flex-1 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? "Adding..." : "Add Card"}

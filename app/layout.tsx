@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { AuthButtons } from "./components/AuthButtons";
+import { BabyIcon } from "./components/BabyIcon";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -32,8 +33,21 @@ export default function RootLayout({
       >
         <body suppressHydrationWarning>
           <div className="min-h-screen flex flex-col">
-            <header className="flex items-center justify-between px-6 py-3 border-b border-black/[.08] dark:border-white/[.1] bg-white dark:bg-zinc-950">
-              <span className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+            {/* Hero banner */}
+            <div className="w-full bg-gradient-to-r from-[#1a0a2e] via-[#2d1054] to-[#1a0a2e] border-b border-purple-900/60 py-6 px-4 flex items-center justify-center gap-4">
+              <span className="text-4xl sm:text-5xl font-black tracking-tight text-purple-100 drop-shadow-lg select-none"
+                style={{ textShadow: "0 0 24px #9b59b680" }}>
+                Lucy&apos;s
+              </span>
+              <BabyIcon size={90} />
+              <span className="text-4xl sm:text-5xl font-black tracking-tight text-purple-100 drop-shadow-lg select-none"
+                style={{ textShadow: "0 0 24px #9b59b680" }}>
+                Barcodes
+              </span>
+            </div>
+
+            <header className="flex items-center justify-between px-6 py-3 border-b border-white/[.06] bg-zinc-950">
+              <span className="text-xs font-semibold tracking-widest uppercase text-zinc-500">
                 Vault TCG
               </span>
               <div className="flex items-center gap-3">
